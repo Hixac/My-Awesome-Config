@@ -17,6 +17,8 @@ local hotkeys_popup = require("awful.hotkeys_popup")
 -- Enable hotkeys help widget for VIM and other apps
 -- when client with a matching name is opened:
 require("awful.hotkeys_popup.keys")
+-- Custom libraries added by me - HIXAC
+local cyclefocus = require('cyclefocus')
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -45,7 +47,23 @@ end
 
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
-beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
+-- beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
+local theme_path = string.format("%s/.config/awesome/themes/%s/theme.lua", os.getenv("HOME"), "zenburn")
+beautiful.init(theme_path)
+beautiful.font = "LiterationMonoNerdFont-Regular 8"
+
+screen.connect_signal("arrange", function (s)
+    local max = s.selected_tag.layout.name == "max"
+    local only_one = #s.tiled_clients == 1 -- use tiled_clients so that other floating windows don't affect the count
+    -- but iterate over clients instead of tiled_clients as tiled_clients doesn't include maximized windows
+    for _, c in pairs(s.clients) do
+        if (max or only_one) and not c.floating or c.maximized then
+            c.border_width = 0
+        else
+            c.border_width = beautiful.border_width
+        end
+    end
+end)
 
 -- This is used later as the default terminal and editor to run.
 terminal = "kitty"
@@ -169,7 +187,7 @@ awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    awful.tag({ "1" }, s, awful.layout.layouts[1])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -265,15 +283,15 @@ globalkeys = gears.table.join(
               {description = "focus the previous screen", group = "screen"}),
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto,
               {description = "jump to urgent client", group = "client"}),
-    awful.key({ modkey,           }, "Tab",
-        function ()
-            awful.client.focus.history.previous()
-            if client.focus then
-                client.focus:raise()
-            end
-        end,
-        {description = "go back", group = "client"}),
-
+    --  awful.key({ modkey,           }, "Tab",
+    --      function ()
+    --          awful.client.focus.history.previous()
+    --          if client.focus then
+    --              client.focus:raise()
+    --          end
+    --      end,
+    --      {description = "go back", group = "client"}),
+	
     -- Standard program
     awful.key({ modkey,           }, "Return", function () awful.spawn(terminal) end,
               {description = "open a terminal", group = "launcher"}),
@@ -326,7 +344,9 @@ globalkeys = gears.table.join(
               end,
               {description = "lua execute prompt", group = "awesome"}),
     -- Menubar
-    awful.key({ modkey }, "e", function() menubar.show() end)
+    awful.key({ modkey }, "e", function() menubar.show() end),
+	-- Screenshot
+	 awful.key({ }, "Print", function () awful.util.spawn("flameshot gui", false) end)
 )
 
 clientkeys = gears.table.join(
@@ -370,7 +390,17 @@ clientkeys = gears.table.join(
             c.maximized_horizontal = not c.maximized_horizontal
             c:raise()
         end ,
-        {description = "(un)maximize horizontally", group = "client"})
+        {description = "(un)maximize horizontally", group = "client"}),
+	
+	-- Alt-Tab: cycle through clients on the same screen.
+	-- This must be a clientkeys mapping to have source_c available in the callback.
+	cyclefocus.key({ "Mod1", }, "Tab", {
+		  -- cycle_filters as a function callback:
+		  -- cycle_filters = { function (c, source_c) return c.screen == source_c.screen end },
+
+		  -- cycle_filters from the default filters:
+		  cycle_filters = { cyclefocus.filters.same_screen, cyclefocus.filters.common_tag },
+		  keys = {'Tab', 'ISO_Left_Tab'}})  -- default, could be left out
 )
 
 -- Bind all key numbers to tags.
@@ -452,7 +482,8 @@ awful.rules.rules = {
                      keys = clientkeys,
                      buttons = clientbuttons,
                      screen = awful.screen.preferred,
-                     placement = awful.placement.no_overlap+awful.placement.no_offscreen
+                     placement = awful.placement.no_overlap+awful.placement.no_offscreen,
+					 size_hints_honor = false
      }
     },
 
@@ -527,7 +558,7 @@ client.connect_signal("request::titlebars", function(c)
         end)
     )
 
-    awful.titlebar(c) : setup {
+    awful.titlebar(c, { size = 18 }) : setup {
         { -- Left
             awful.titlebar.widget.iconwidget(c),
             buttons = buttons,
@@ -549,6 +580,7 @@ client.connect_signal("request::titlebars", function(c)
             awful.titlebar.widget.closebutton    (c),
             layout = wibox.layout.fixed.horizontal()
         },
+
         layout = wibox.layout.align.horizontal
     }
 end)
