@@ -19,6 +19,10 @@ local hotkeys_popup = require("awful.hotkeys_popup")
 require("awful.hotkeys_popup.keys")
 -- Custom libraries added by me - HIXAC
 local cyclefocus = require('cyclefocus')
+local battery_widget = require("awesome-wm-widgets.battery-widget.battery")
+local calendar_widget = require("awesome-wm-widgets.calendar-widget.calendar")
+local cpu_widget = require("awesome-wm-widgets.cpu-widget.cpu-widget")
+local todo_widget = require("awesome-wm-widgets.todo-widget.todo")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -50,7 +54,6 @@ end
 -- beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
 local theme_path = string.format("%s/.config/awesome/themes/%s/theme.lua", os.getenv("HOME"), "zenburn")
 beautiful.init(theme_path)
-beautiful.font = "LiterationMonoNerdFont-Regular 8"
 
 screen.connect_signal("arrange", function (s)
     local max = s.selected_tag.layout.name == "max"
@@ -126,6 +129,17 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 -- {{{ Wibar
 -- Create a textclock widget
 mytextclock = wibox.widget.textclock()
+local cw = calendar_widget({
+	  placement = 'bottom_right',
+	  radius = 8,
+	  -- with customized next/previous (see table above)
+	  previous_month_button = 1,
+	  next_month_button = 3,
+})
+mytextclock:connect_signal("button::press",
+						   function(_, _, _, button)
+							  if button == 1 then cw.toggle() end
+end)
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
@@ -187,7 +201,7 @@ awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ "1" }, s, awful.layout.layouts[1])
+    awful.tag({ "1", "2", "3", "4"}, s, awful.layout.layouts[1])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -218,22 +232,30 @@ awful.screen.connect_for_each_screen(function(s)
 
     -- Add widgets to the wibox
     s.mywibox:setup {
-        layout = wibox.layout.align.horizontal,
-        { -- Left widgets
-            layout = wibox.layout.fixed.horizontal,
-            mylauncher,
-            s.mytaglist,
-            s.mypromptbox,
-        },
-        s.mytasklist, -- Middle widget
-        { -- Right widgets
-            layout = wibox.layout.fixed.horizontal,
-            mykeyboardlayout,
-            wibox.widget.systray(),
-            mytextclock,
-            s.mylayoutbox,
-        },
+	   layout = wibox.layout.align.horizontal,
+	   { -- Left widgets
+		  layout = wibox.layout.fixed.horizontal,
+		  s.mypromptbox,
+	   },
+	   s.mytasklist, -- Middle widget
     }
+	s.mywibox = awful.wibar({ position = "bottom", screen = s})
+	s.mywibox:setup {
+	   layout = wibox.layout.align.horizontal,
+	   { -- LEFT WIDGETS
+		  layout = wibox.layout.fixed.horizontal,
+		  s.mytaglist,
+	   },
+	   nil,
+	   { -- RIGHT WIDGETS
+		  layout = wibox.layout.fixed.horizontal,
+		  mykeyboardlayout,
+		  battery_widget(),
+		  todo_widget(),
+		  mytextclock,
+		  wibox.widget.systray()
+	   }
+	}
 end)
 -- }}}
 
@@ -346,7 +368,11 @@ globalkeys = gears.table.join(
     -- Menubar
     awful.key({ modkey }, "e", function() menubar.show() end),
 	-- Screenshot
-	 awful.key({ }, "Print", function () awful.util.spawn("flameshot gui", false) end)
+	awful.key({ }, "Print", function () awful.util.spawn("flameshot gui", false) end),
+	-- Audio
+	awful.key({ modkey }, "]", function() volume_widget:inc(5) end),
+	awful.key({ modkey }, "[", function() volume_widget:dec(5) end),
+	awful.key({ modkey }, "\\", function() volume_widget:toggle() end)
 )
 
 clientkeys = gears.table.join(
@@ -520,7 +546,7 @@ awful.rules.rules = {
 
     -- Add titlebars to normal clients and dialogs
     { rule_any = {type = { "normal", "dialog" }
-      }, properties = { titlebars_enabled = true }
+      }, properties = { titlebars_enabled = false }
     },
 
     -- Set Firefox to always map on the tag named "2" on screen 1.
