@@ -22,7 +22,6 @@ local cyclefocus = require('cyclefocus')
 local battery_widget = require("awesome-wm-widgets.battery-widget.battery")
 local calendar_widget = require("awesome-wm-widgets.calendar-widget.calendar")
 local cpu_widget = require("awesome-wm-widgets.cpu-widget.cpu-widget")
-local todo_widget = require("awesome-wm-widgets.todo-widget.todo")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -72,6 +71,7 @@ end)
 terminal = "kitty"
 editor = os.getenv("EDITOR") or "emacs"
 editor_cmd = terminal .. " -e " .. editor
+awful.spawn.with_shell("picom --config ~/.config/picom.conf")
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -212,17 +212,6 @@ end
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
 screen.connect_signal("property::geometry", set_wallpaper)
 
-function os.capture(cmd, raw)
-  local f = assert(io.popen(cmd, 'r'))
-  local s = assert(f:read('*a'))
-  f:close()
-  if raw then return s end
-  s = string.gsub(s, '^%s+', '')
-  s = string.gsub(s, '%s+$', '')
-  s = string.gsub(s, '[\n\r]+', ' ')
-  return s
-end
-
 local rightseparator = wibox.widget.textbox(" |")
 local leftseparator = wibox.widget.textbox("| ")
 local separator = wibox.widget.textbox(" | ")
@@ -231,10 +220,31 @@ local diskspacestr = wibox.widget.textbox("/dev/sda3 : ")
 -- Create disk space size info ||-> 'bash -c "df -h /dev/sda3 | grep -m 1 -Po \'\\d{1,}G\' | tail -1"'
 local diskspace = awful.widget.watch('bash -c "df -h /dev/sda3 | grep -m 1 -Po \'\\d{1,}G\' | tail -1"', 10)
 local projectspace = awful.widget.watch('bash -c "du -sh ~/Projects | grep -Po \'^[^\\s]*\'"', 10)
-local projectspacestr = wibox.widget.textbox("Project : ")
 
-local todayis = wibox.widget.textbox("Сегодня среда?")
 local answer = wibox.widget.textbox("Нет")
+local color = "#DC0000"
+local colored_answer = wibox.container.background(answer, color)
+
+local todayis = wibox.widget.textbox("Сегодня суббота?")
+local colored_today = wibox.container.background(todayis, color)
+
+awful.widget.watch("sh -c \"date '+%A'\"", 1,
+				   function (widget, stdout, stderr, exitreason, exitcode)
+					  if stdout == 'Saturday\n' then
+						 answer:set_text("Да")
+						 colored_answer.bg = "#006000"
+						 colored_today.bg = "#006000"
+					  else
+						 answer:set_text("Нет")
+						 colored_answer.bg = color
+						 colored_today.bg = color
+					  end
+end)
+
+
+local projectspacestr = wibox.widget.textbox("~/Projects/ : ")
+
+
 
 awful.screen.connect_for_each_screen(function(s)
     -- Wallpaper
@@ -290,9 +300,9 @@ awful.screen.connect_for_each_screen(function(s)
 	   { -- RIGHT WIDGETS
 		  layout = wibox.layout.fixed.horizontal,
 		  separator,
-		  wibox.container.background(todayis, '#DC0000'),
+		  colored_today,
 		  separator,
-		  wibox.container.background(answer, '#DC0000'),
+		  colored_answer,
 		  separator,
 		  wibox.container.background(projectspacestr, '#070A52'),
 		  wibox.container.background(projectspace, '#070A52'),
@@ -302,7 +312,6 @@ awful.screen.connect_for_each_screen(function(s)
 		  rightseparator,
 		  mykeyboardlayout,
 		  battery_widget(),
-		  todo_widget(),
 		  mytextclock,
 		  wibox.widget.systray()
 	   }
