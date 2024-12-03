@@ -1,0 +1,6 @@
+[submodule "cyclefocus"]
+	path = cyclefocus
+	url = https://github.com/blueyed/awesome-cyclefocus
+[submodule "awesome-wm-widgets"]
+	path = awesome-wm-widgets
+	url = https://github.com/streetturtle/awesome-wm-widgets
