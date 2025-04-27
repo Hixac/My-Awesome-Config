@@ -18,7 +18,6 @@ local hotkeys_popup = require("awful.hotkeys_popup")
 -- when client with a matching name is opened:
 require("awful.hotkeys_popup.keys")
 -- Custom libraries added by me - HIXAC
-local cyclefocus = require('cyclefocus')
 local battery_widget = require("awesome-wm-widgets.battery-widget.battery")
 local calendar_widget = require("awesome-wm-widgets.calendar-widget.calendar")
 local cpu_widget = require("awesome-wm-widgets.cpu-widget.cpu-widget")
@@ -69,9 +68,8 @@ end)
 
 -- This is used later as the default terminal and editor to run.
 terminal = "kitty"
-editor = os.getenv("EDITOR") or "emacs"
+editor = os.getenv("EDITOR") or "vim"
 editor_cmd = terminal .. " -e " .. editor
-awful.spawn.with_shell("picom --config ~/.config/picom.conf")
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -218,8 +216,6 @@ local separator = wibox.widget.textbox(" | ")
 local diskspacestr = wibox.widget.textbox("/dev/sda3 : ")
 
 -- Create disk space size info ||-> 'bash -c "df -h /dev/sda3 | grep -m 1 -Po \'\\d{1,}G\' | tail -1"'
-local diskspace = awful.widget.watch('bash -c "df -h /dev/sda3 | grep -m 1 -Po \'\\d{1,}G\' | tail -1"', 10)
-local projectspace = awful.widget.watch('bash -c "du -sh ~/Projects | grep -Po \'^[^\\s]*\'"', 10)
 
 local answer = wibox.widget.textbox("Нет")
 local color = "#DC0000"
@@ -240,11 +236,6 @@ awful.widget.watch("sh -c \"date '+%A'\"", 1,
 						 colored_today.bg = color
 					  end
 end)
-
-
-local projectspacestr = wibox.widget.textbox("~/Projects/ : ")
-
-
 
 awful.screen.connect_for_each_screen(function(s)
     -- Wallpaper
@@ -304,14 +295,10 @@ awful.screen.connect_for_each_screen(function(s)
 		  separator,
 		  colored_answer,
 		  separator,
-		  wibox.container.background(projectspacestr, '#070A52'),
-		  wibox.container.background(projectspace, '#070A52'),
+          awful.widget.watch('cat /sys/class/power_supply/BAT0/capacity', 15),
+		  wibox.widget.textbox('%'),
 		  separator,
-		  wibox.container.background(diskspacestr, '#070A52'),
-		  wibox.container.background(diskspace, '#070A52'),
-		  rightseparator,
 		  mykeyboardlayout,
-		  battery_widget(),
 		  mytextclock,
 		  wibox.widget.systray()
 	   }
@@ -503,17 +490,10 @@ clientkeys = gears.table.join(
             c.maximized_horizontal = not c.maximized_horizontal
             c:raise()
         end ,
-        {description = "(un)maximize horizontally", group = "client"}),
+        {description = "(un)maximize horizontally", group = "client"})
 	
 	-- Alt-Tab: cycle through clients on the same screen.
 	-- This must be a clientkeys mapping to have source_c available in the callback.
-	cyclefocus.key({ "Mod1", }, "Tab", {
-		  -- cycle_filters as a function callback:
-		  -- cycle_filters = { function (c, source_c) return c.screen == source_c.screen end },
-
-		  -- cycle_filters from the default filters:
-		  cycle_filters = { cyclefocus.filters.same_screen, cyclefocus.filters.common_tag },
-		  keys = {'Tab', 'ISO_Left_Tab'}})  -- default, could be left out
 )
 
 -- Bind all key numbers to tags.
