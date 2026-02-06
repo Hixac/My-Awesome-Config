@@ -12,7 +12,7 @@ theme.wallpaper = themes_path .. "zenburn/zenburn-background.png"
 -- }}}
 
 -- {{{ Styles
-theme.font = "JetBrainsMono Nerd Font Bold 10"
+theme.font = "JetBrainsMono Nerd Font Bold 8.5"
 theme.tasklist_disable_icon = true
 
 -- {{{ Colors

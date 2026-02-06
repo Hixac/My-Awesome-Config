@@ -67,7 +67,7 @@ screen.connect_signal("arrange", function (s)
 end)
 
 -- This is used later as the default terminal and editor to run.
-terminal = "kitty"
+terminal = "terminator"
 editor = os.getenv("EDITOR") or "vim"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -315,7 +315,7 @@ root.buttons(gears.table.join(
 -- }}}
 -- {{{ Key bindings
 globalkeys = gears.table.join(
-    awful.key({ "Ctrl" }, "`", function () mykeyboardlayout.next_layout(); end),
+    awful.key({ "Ctrl" }, "Escape", function () mykeyboardlayout.next_layout(); end),
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description="show help", group="awesome"}),
     awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
